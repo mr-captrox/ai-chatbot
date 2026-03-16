@@ -1,0 +1,36 @@
+# FastAPI & Uvicorn
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+
+# LangChain ecosystem
+langchain
+langchain-groq
+langchain-ollama
+langchain-community
+langsmith
+
+# Vector Database
+faiss-cpu
+
+# OCR
+easyocr
+
+# Search & Web
+tavily-python
+requests
+
+# Utils
+python-dotenv
+pillow
+numpy
+pandas
+
+# Document Processing
+PyPDF2
+python-multipart
+
+# Optional: For better embeddings
+sentence-transformers
+huggingface-hub
