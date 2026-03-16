@@ -8,6 +8,8 @@ pydantic-settings
 langchain
 langchain-groq
 langchain-ollama
+langchain-google-genai
+google-generativeai
 langchain-community
 langsmith
 

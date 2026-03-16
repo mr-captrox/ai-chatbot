@@ -1,54 +1,53 @@
-"""
-LLM instantiation using Groq provider.
-Provides the model instance for agent execution.
-"""
-
+from typing import Optional
 from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from chatbot.core.config import settings
 
 
-def get_groq_llm() -> ChatGroq:
-    """
-    Initialize and return Groq LLM instance.
+def get_google_llm() -> Optional[ChatGoogleGenerativeAI]:
+    """Initialize Google Gemini LLM."""
+    api_key = settings.google_gemini_api_key or settings.google_api_key
+    if not api_key:
+        return None
+    
+    return ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash",
+        google_api_key=api_key,
+        temperature=settings.llm_temperature,
+        max_output_tokens=settings.llm_max_tokens,
+    )
 
-    Uses configuration from environment variables:
-    - GROQ_API_KEY: Groq API key
-    - LLM_MODEL_NAME: Model name (default: llama-3.1-70b-versatile)
-    - LLM_TEMPERATURE: Temperature for sampling (default: 0.7)
-    - LLM_MAX_TOKENS: Max tokens in response (default: 1024)
 
-    Returns:
-        ChatGroq: Configured LLM instance
-
-    Raises:
-        ValueError: If GROQ_API_KEY not provided
-    """
+def get_groq_llm() -> Optional[ChatGroq]:
+    """Initialize Groq LLM."""
     if not settings.groq_api_key:
-        raise ValueError("GROQ_API_KEY environment variable not set")
+        return None
 
-    llm = ChatGroq(
+    return ChatGroq(
         model=settings.llm_model_name,
         temperature=settings.llm_temperature,
         max_tokens=settings.llm_max_tokens,
         api_key=settings.groq_api_key,
     )
 
-    return llm
-
 
 # Lazy-loaded LLM instance
 _llm_instance = None
 
 
-def get_llm() -> ChatGroq:
-    """
-    Get or create LLM instance (singleton pattern).
-
-    Returns:
-        ChatGroq: LLM instance
-    """
+def get_llm():
+    """Get or create LLM instance (Gemini preferred)."""
     global _llm_instance
     if _llm_instance is None:
-        _llm_instance = get_groq_llm()
+        # Prefer Gemini if key is provided
+        _llm_instance = get_google_llm()
+        
+        # Fallback to Groq
+        if _llm_instance is None:
+            _llm_instance = get_groq_llm()
+            
+        if _llm_instance is None:
+            raise ValueError("No LLM API keys provided (Google/Gemini or Groq)")
+            
     return _llm_instance
