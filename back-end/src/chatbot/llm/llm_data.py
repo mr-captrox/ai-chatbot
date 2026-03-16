@@ -12,10 +12,11 @@ def get_google_llm() -> Optional[ChatGoogleGenerativeAI]:
         return None
     
     return ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash",
+        model="gemini-2.0-flash",
         google_api_key=api_key,
         temperature=settings.llm_temperature,
         max_output_tokens=settings.llm_max_tokens,
+        max_retries=2,
     )
 
 

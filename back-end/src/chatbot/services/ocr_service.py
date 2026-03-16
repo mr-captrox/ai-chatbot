@@ -27,7 +27,7 @@ class OCRService:
         self.languages = languages or ["en"]
         self.gpu = gpu
         self.reader = None
-        self._initialize_reader()
+        # Removed _initialize_reader from __init__ to improve startup time
 
     def _initialize_reader(self) -> None:
         """Initialize EasyOCR reader (lazy loading)."""
@@ -55,6 +55,9 @@ class OCRService:
             ValueError: If image cannot be loaded
         """
         try:
+            # Ensure reader is initialized
+            self._initialize_reader()
+            
             # Load image if needed
             if isinstance(image_input, str):
                 image = Image.open(image_input)

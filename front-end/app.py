@@ -196,7 +196,7 @@ with st.sidebar:
 
     **Tech Stack**
     - Backend: FastAPI + LangChain
-    - LLM: Groq (Mixtral 8x7b)
+    - LLM: Google Gemini 2.0 Flash (Groq fallback)
     - Vector DB: FAISS
     - Frontend: Streamlit
     """)
