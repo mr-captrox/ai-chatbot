@@ -177,7 +177,7 @@ The chatbot follows a modular architecture:
 - **LangSmith not showing traces**: Verify `LANGSMITH_API_KEY` and `LANGSMITH_PROJECT_NAME`
 
 ## Author
-[Your Name]
+mr_captrox
 
 ## License
 MIT
