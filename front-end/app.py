@@ -79,7 +79,7 @@ def send_message(message: str, agents: list) -> dict:
         payload = {
             "message": message,
             "agent_types": agents,
-            "use_image": False,
+            "use_image": "image_analysis" in agents,
         }
 
         response = requests.post(
@@ -152,8 +152,8 @@ with st.sidebar:
 
     # Agent selection
     st.subheader("👥 Agents")
-    # use_research = st.checkbox("🔍 Research Agent (Web Search)", value=True)
-    use_rag = st.checkbox("📚 RAG Agent (Documents)", value=True)
+    use_research = st.checkbox("🔍 LLM & Basic Searches", value=True)
+    use_rag = st.checkbox("📚 RAG (Document)", value=True)
     use_ocr = st.checkbox("🖼️ Image Agent (OCR)", value=False)
 
     st.divider()
@@ -190,13 +190,13 @@ with st.sidebar:
     st.markdown("""
     **AI Chatbot with Specialized Agents**
 
-    - **Research Agent**: Searches the web for current information
+    - **LLM & Search**: General logic and web research
     - **RAG Agent**: Retrieves from uploaded documents
     - **Image Agent**: Extracts text from images
 
     **Tech Stack**
     - Backend: FastAPI + LangChain
-    - LLM: Google Gemini 2.0 Flash (Groq fallback)
+    - LLM: Groq (GPT-OSS 120B)
     - Vector DB: FAISS
     - Frontend: Streamlit
     """)
@@ -244,10 +244,12 @@ if user_input:
 
     # Prepare agents
     agents = []
-    # if use_research:
-    #     agents.append("research")
+    if use_research:
+        agents.append("research")
     if use_rag:
         agents.append("rag")
+    if use_ocr:
+        agents.append("image_analysis")
 
     if not agents:
         st.error("❌ Please select at least one agent")

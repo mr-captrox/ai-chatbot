@@ -38,17 +38,12 @@ _llm_instance = None
 
 
 def get_llm():
-    """Get or create LLM instance (Gemini preferred)."""
+    """Get or create LLM instance (Groq only as per user request)."""
     global _llm_instance
     if _llm_instance is None:
-        # Prefer Gemini if key is provided
-        _llm_instance = get_google_llm()
-        
-        # Fallback to Groq
-        if _llm_instance is None:
-            _llm_instance = get_groq_llm()
+        _llm_instance = get_groq_llm()
             
         if _llm_instance is None:
-            raise ValueError("No LLM API keys provided (Google/Gemini or Groq)")
+            raise ValueError("No Groq API key provided")
             
     return _llm_instance

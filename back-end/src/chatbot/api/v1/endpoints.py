@@ -66,10 +66,10 @@ async def chat(request: ChatRequest) -> ChatResponse:
     try:
         llm = get_llm()
 
-        # Research Agent - DISABLED (use Tavily for web search)
-        # if AgentType.RESEARCH in request.agent_types:
-        #     research_response = await _research_agent(request.message, llm)
-        #     agent_responses.append(research_response)
+        # Research Agent
+        if AgentType.RESEARCH in request.agent_types:
+            research_response = await _research_agent(request.message, llm)
+            agent_responses.append(research_response)
 
         # RAG Agent (Document+Knowledge Base Search)
         if AgentType.RAG in request.agent_types:
@@ -77,9 +77,9 @@ async def chat(request: ChatRequest) -> ChatResponse:
             agent_responses.append(rag_response)
 
         # Image Analysis Agent
-        if AgentType.IMAGE_ANALYSIS in request.agent_types and request.use_image:
-            # TODO: Integrate image analysis when image upload is available
-            logger.info("Image analysis requested but not yet integrated in chat endpoint")
+        if AgentType.IMAGE_ANALYSIS in request.agent_types:
+            image_response = await _image_agent(request.message, llm)
+            agent_responses.append(image_response)
 
         # Synthesize responses
         if agent_responses:
@@ -135,6 +135,43 @@ async def _research_agent(query: str, llm) -> AgentResponse:
         return AgentResponse(
             agent_type=AgentType.RESEARCH,
             answer=f"Research failed: {str(e)}",
+            confidence=0.0,
+            sources=[],
+        )
+
+
+async def _image_agent(query: str, llm) -> AgentResponse:
+    """
+    Execute Image Analysis Agent using OCR.
+    
+    Args:
+        query: User query
+        llm: LLM instance
+        
+    Returns:
+        AgentResponse from image analysis
+    """
+    try:
+        ocr_service = get_ocr_service()
+        # Since we don't have an image path in the request yet,
+        # this agent currently just explains its capabilities or 
+        # waits for future image upload integration.
+        # For now, we'll return a placeholder or OCR capability info.
+        
+        answer = "I can analyze images using OCR. Please upload an image in the sidebar (feature coming soon) or ask me about image text extraction."
+        
+        return AgentResponse(
+            agent_type=AgentType.IMAGE_ANALYSIS,
+            answer=answer,
+            confidence=0.9,
+            sources=[],
+        )
+
+    except Exception as e:
+        logger.error(f"Image agent error: {str(e)}")
+        return AgentResponse(
+            agent_type=AgentType.IMAGE_ANALYSIS,
+            answer=f"Image analysis failed: {str(e)}",
             confidence=0.0,
             sources=[],
         )
