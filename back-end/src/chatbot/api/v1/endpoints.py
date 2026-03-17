@@ -5,7 +5,7 @@ Handles chat requests, document uploads, traces, and health checks.
 
 import time
 from functools import lru_cache
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from langsmith import traceable
@@ -37,9 +37,7 @@ def get_rag_service() -> RAGService:
 
 @lru_cache(maxsize=1)
 def get_search_service():
-    """Returns GoogleSearchService if configured, otherwise TavilySearchService."""
-    if settings.google_cse_id and (settings.google_cse_api_key or settings.google_api_key):
-        return GoogleSearchService()
+    """Returns TavilySearchService for web searches."""
     return TavilySearchService()
 
 
@@ -78,7 +76,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
         # Image Analysis Agent
         if AgentType.IMAGE_ANALYSIS in request.agent_types:
-            image_response = await _image_agent(request.message, llm)
+            image_response = await _image_agent(request.message, request.image_data, llm)
             agent_responses.append(image_response)
 
         # Synthesize responses
@@ -140,31 +138,63 @@ async def _research_agent(query: str, llm) -> AgentResponse:
         )
 
 
-async def _image_agent(query: str, llm) -> AgentResponse:
+import base64
+from io import BytesIO
+
+async def _image_agent(query: str, image_data: Optional[str], llm) -> AgentResponse:
     """
     Execute Image Analysis Agent using OCR.
     
     Args:
         query: User query
+        image_data: Base64 encoded image
         llm: LLM instance
         
     Returns:
         AgentResponse from image analysis
     """
     try:
+        if not image_data:
+            return AgentResponse(
+                agent_type=AgentType.IMAGE_ANALYSIS,
+                answer="No image was provided for analysis. Please upload an image in the sidebar.",
+                confidence=0.0,
+                sources=[],
+            )
+
         ocr_service = get_ocr_service()
-        # Since we don't have an image path in the request yet,
-        # this agent currently just explains its capabilities or 
-        # waits for future image upload integration.
-        # For now, we'll return a placeholder or OCR capability info.
         
-        answer = "I can analyze images using OCR. Please upload an image in the sidebar (feature coming soon) or ask me about image text extraction."
+        # Decode base64 image
+        header, encoded = image_data.split(",", 1) if "," in image_data else (None, image_data)
+        image_bytes = base64.b64decode(encoded)
+        
+        # Extract text
+        ocr_result = ocr_service.extract_text_with_layout(image_bytes)
+        extracted_text = ocr_result.get("extracted_text", "")
+        
+        if not extracted_text.strip():
+            return AgentResponse(
+                agent_type=AgentType.IMAGE_ANALYSIS,
+                answer="I couldn't detect any text in the uploaded image.",
+                confidence=0.5,
+                sources=[],
+            )
+
+        # Generate response using LLM to interpret extracted text
+        prompt = f"""
+        User Query: {query}
+        Extracted Text from Image:
+        {extracted_text}
+        
+        Based on the extracted text, please answer the user's query contextually.
+        """
+        response = llm.invoke(prompt)
         
         return AgentResponse(
             agent_type=AgentType.IMAGE_ANALYSIS,
-            answer=answer,
-            confidence=0.9,
-            sources=[],
+            answer=response.content,
+            confidence=ocr_result.get("average_confidence", 0.5),
+            sources=[Source(title="OCR Extraction", relevance_score=1.0, excerpt=extracted_text[:200])],
         )
 
     except Exception as e:

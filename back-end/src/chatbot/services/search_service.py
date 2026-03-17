@@ -90,7 +90,8 @@ class TavilySearchService:
             response = self.client.search(
                 query=query,
                 max_results=num_results,
-                include_answer=True
+                include_answer=True,
+                search_depth="advanced"
             )
 
             sources = []

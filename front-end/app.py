@@ -9,7 +9,8 @@ from pathlib import Path
 import requests
 import streamlit as st
 from dotenv import load_dotenv
-from PIL import Image
+import base64
+from typing import List, Optional
 
 # Load environment
 load_dotenv()
@@ -64,13 +65,14 @@ def check_api_health() -> bool:
         return False
 
 
-def send_message(message: str, agents: list) -> dict:
+def send_message(message: str, agents: list, image_data: Optional[str] = None) -> dict:
     """
     Send message to chatbot API.
 
     Args:
         message: User message
         agents: List of agents to use
+        image_data: Optional base64 image data
 
     Returns:
         API response
@@ -80,6 +82,7 @@ def send_message(message: str, agents: list) -> dict:
             "message": message,
             "agent_types": agents,
             "use_image": "image_analysis" in agents,
+            "image_data": image_data,
         }
 
         response = requests.post(
@@ -185,6 +188,22 @@ with st.sidebar:
 
     st.divider()
 
+    # Image Upload for OCR
+    if use_ocr:
+        st.subheader("🖼️ Image Extraction")
+        uploaded_image = st.file_uploader(
+            "Upload image for OCR",
+            type=["jpg", "png", "jpeg"],
+            key="ocr_image"
+        )
+        
+        if uploaded_image:
+            st.image(uploaded_image, caption="Uploaded Image", use_container_width=True)
+            if st.button("🔍 Extract Text from Image"):
+                st.info("🔄 Image analysis integration in progress. For now, this will explain OCR capabilities.")
+    
+    st.divider()
+
     # About
     st.subheader("ℹ️ About")
     st.markdown("""
@@ -196,8 +215,9 @@ with st.sidebar:
 
     **Tech Stack**
     - Backend: FastAPI + LangChain
-    - LLM: Groq (GPT-OSS 120B)
+    - LLM: Groq (Llama-3.1 8B)
     - Vector DB: FAISS
+    - Search: Tavily AI
     - Frontend: Streamlit
     """)
 
@@ -242,21 +262,30 @@ if user_input:
     with st.chat_message("user"):
         st.write(user_input)
 
-    # Prepare agents
-    agents = []
-    if use_research:
-        agents.append("research")
-    if use_rag:
-        agents.append("rag")
-    if use_ocr:
-        agents.append("image_analysis")
+        # Prepare agents
+        agents = []
+        if use_research:
+            agents.append("research")
+        if use_rag:
+            agents.append("rag")
+        if use_ocr:
+            agents.append("image_analysis")
 
-    if not agents:
-        st.error("❌ Please select at least one agent")
-    else:
-        # Get response from chatbot
-        with st.spinner("🤔 Thinking..."):
-            response = send_message(user_input, agents)
+        if not agents:
+            st.error("❌ Please select at least one agent")
+        else:
+            # Process image if OCR is selected
+            b64_image = None
+            if use_ocr and uploaded_image:
+                try:
+                    img_bytes = uploaded_image.getvalue()
+                    b64_image = base64.b64encode(img_bytes).decode("utf-8")
+                except Exception as e:
+                    st.error(f"Error encoding image: {str(e)}")
+
+            # Get response from chatbot
+            with st.spinner("🤔 Thinking..."):
+                response = send_message(user_input, agents, image_data=b64_image)
 
         if response:
             # Display assistant response

@@ -54,6 +54,7 @@ class ChatRequest(BaseModel):
         description="Which agents to use"
     )
     use_image: bool = Field(default=False, description="Whether to use image analysis")
+    image_data: Optional[str] = Field(None, description="Base64 encoded image data")
 
 
 class ChatResponse(BaseModel):
