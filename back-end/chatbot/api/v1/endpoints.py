@@ -265,20 +265,21 @@ def _synthesize_responses(
         return agent_responses[0].answer
 
     # Multi-agent synthesis
-    results = ["Based on multiple sources:\n"]
+    results: List[str] = ["Based on multiple sources:\n"]
 
     for resp in agent_responses:
         results.append(f"**{resp.agent_type.value.title()}:**\n{resp.answer}\n")
 
     results.append("**Sources:**")
-    all_sources: set[str] = set()
+    all_sources = set()
     for resp in agent_responses:
         for source in resp.sources:
             if source.title:
                 all_sources.add(str(source.title))
 
     if all_sources:
-        results.extend(sorted([f"- {s}" for s in all_sources]))
+        for s in sorted(all_sources):
+            results.append(f"- {s}")
     else:
         results.append("- No specific sources referenced")
 

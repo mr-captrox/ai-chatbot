@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables FIRST, before any other imports
-env_file = Path(__file__).parent.parent.parent / ".env"
+env_file = Path(__file__).parent.parent / ".env"
 load_dotenv(env_file)
 
 from chatbot.api.v1 import endpoints
