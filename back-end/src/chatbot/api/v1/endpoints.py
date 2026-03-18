@@ -265,20 +265,24 @@ def _synthesize_responses(
         return agent_responses[0].answer
 
     # Multi-agent synthesis
-    synthesis = "Based on multiple sources:\n\n"
+    results = ["Based on multiple sources:\n"]
 
     for resp in agent_responses:
-        synthesis += f"**{resp.agent_type.value.title()}:**\n{resp.answer}\n\n"
+        results.append(f"**{resp.agent_type.value.title()}:**\n{resp.answer}\n")
 
-    synthesis += "**Sources:**\n"
-    all_sources = set()
+    results.append("**Sources:**")
+    all_sources: set[str] = set()
     for resp in agent_responses:
         for source in resp.sources:
-            all_sources.add(f"- {source.title}")
+            if source.title:
+                all_sources.add(str(source.title))
 
-    synthesis += "\n".join(sorted(all_sources))
+    if all_sources:
+        results.extend(sorted([f"- {s}" for s in all_sources]))
+    else:
+        results.append("- No specific sources referenced")
 
-    return synthesis
+    return "\n".join(results)
 
 
 @router.post("/upload-document", response_model=DocumentUploadResponse)
