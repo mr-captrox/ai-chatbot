@@ -1,4 +1,4 @@
-# AI Chatbot - Gemini 2.5 Flash Edition
+# AI Chatbot - Gemini 1.5 Flash Edition
 
 ## Overview
 A powerful multi-agent AI chatbot featuring **Research (Web Search)**, **RAG (Document Chat)**, and **Image Analysis (OCR)** capabilities. Built with **FastAPI**, **Streamlit**, and **LangChain**, and fully instrumented with **LangSmith Threads** for advanced conversation tracing.
@@ -6,7 +6,7 @@ A powerful multi-agent AI chatbot featuring **Research (Web Search)**, **RAG (Do
 ## Tech Stack
 - **Frontend**: Streamlit (Reactive UI with Session Memory)
 - **Backend**: FastAPI (Async high-performance API)
-- **LLM**: Google Gemini 2.5 Flash (Optimized for speed and accuracy)
+- **LLM**: Google Gemini 1.5 Flash (Optimized for speed and accuracy)
 - **Search Engine**: Tavily AI (Designed specifically for AI-agent retrieval)
 - **Vector Database**: FAISS (Fast Approximate Nearest Neighbor Search)
 - **OCR Engine**: EasyOCR + Layout preservation

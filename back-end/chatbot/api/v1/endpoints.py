@@ -138,7 +138,7 @@ async def _research_agent(query: str, llm, thread_id: Optional[str] = None) -> A
         # Generate response
         prompt = research_agent_prompt.format(input=query)
         response = llm.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-1.5-flash",
             contents=f"{prompt}\n\nContext:\n{context}"
         )
 
@@ -216,7 +216,7 @@ async def _image_agent(
         Based on the extracted text, please answer the user's query contextually.
         """
         response = llm.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-1.5-flash",
             contents=prompt
         )
         
@@ -257,7 +257,7 @@ async def _rag_agent(query: str, llm, thread_id: Optional[str] = None) -> AgentR
         # Generate response using LLM
         prompt = rag_agent_prompt.format(input=query, context=context)
         response = llm.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-1.5-flash",
             contents=prompt
         )
 
