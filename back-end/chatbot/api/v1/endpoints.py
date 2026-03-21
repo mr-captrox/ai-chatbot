@@ -144,7 +144,7 @@ async def _research_agent(query: str, llm, thread_id: Optional[str] = None) -> A
 
         return AgentResponse(
             agent_type=AgentType.RESEARCH,
-            answer=response.text,
+            answer=response.text or "I searched but couldn't find a definitive answer.",
             confidence=0.8,
             sources=sources,
         )
@@ -222,7 +222,7 @@ async def _image_agent(
         
         return AgentResponse(
             agent_type=AgentType.IMAGE_ANALYSIS,
-            answer=response.text,
+            answer=response.text or "I extracted text from the image but could not interpret a specific answer.",
             confidence=ocr_result.get("average_confidence", 0.5),
             sources=[Source(title="OCR Extraction", relevance_score=1.0, excerpt=extracted_text[:200])],
         )
@@ -263,7 +263,7 @@ async def _rag_agent(query: str, llm, thread_id: Optional[str] = None) -> AgentR
 
         return AgentResponse(
             agent_type=AgentType.RAG,
-            answer=response.text,
+            answer=response.text or "I retrieved relevant documents but could not generate a summary.",
             confidence=0.75,
             sources=sources,
         )
@@ -428,7 +428,7 @@ async def health_check() -> HealthResponse:
         "vector_db": "healthy",
         "search": "healthy",
         "ocr": "healthy",
-        "vector_db_size": 0
+        "vector_db_size": str(0)
     }
 
     # Try to verify services
@@ -439,7 +439,7 @@ async def health_check() -> HealthResponse:
 
     try:
         rag_service = get_rag_service()
-        services["vector_db_size"] = rag_service.get_store_size()
+        services["vector_db_size"] = str(rag_service.get_store_size())
     except Exception as e:
         services["vector_db"] = f"degraded: {str(e)}"
 
