@@ -1,21 +1,29 @@
-from typing import Optional
-from langchain_google_genai import ChatGoogleGenerativeAI
+import os
+from google import genai
+from langsmith import wrappers
 from chatbot.core.config import settings
 
-
-def get_google_llm() -> Optional[ChatGoogleGenerativeAI]:
-    """Initialize Google Gemini LLM."""
+def get_google_llm():
+    """Initialize Wrapped Native Google Gemini LLM."""
     api_key = settings.google_gemini_api_key or settings.google_api_key
     if not api_key:
         return None
     
-    return ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        google_api_key=api_key,
-        temperature=settings.llm_temperature,
-        max_output_tokens=settings.llm_max_tokens,
-        max_retries=2,
+    # Initialize native client
+    gemini_client = genai.Client(api_key=api_key)
+    
+    # Wrap with LangSmith tracing
+    wrapped_client = wrappers.wrap_gemini(
+        gemini_client,
+        tracing_extra={
+            "tags": ["gemini", "native", "python"],
+            "metadata": {
+                "integration": "google-genai-native",
+                "project": settings.langsmith_project_name
+            },
+        },
     )
+    return wrapped_client
 
 
 # Lazy-loaded LLM instance
@@ -23,7 +31,7 @@ _llm_instance = None
 
 
 def get_llm():
-    """Get or create LLM instance (Gemini Flash as per user request)."""
+    """Get or create the wrapped Gemini client."""
     global _llm_instance
     if _llm_instance is None:
         _llm_instance = get_google_llm()

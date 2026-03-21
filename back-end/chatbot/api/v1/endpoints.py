@@ -9,6 +9,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from langsmith import traceable
+from google.genai import types
 
 from chatbot.api.v1.schemas import (
     ChatRequest,
@@ -136,14 +137,14 @@ async def _research_agent(query: str, llm, thread_id: Optional[str] = None) -> A
 
         # Generate response
         prompt = research_agent_prompt.format(input=query)
-        response = llm.invoke(
-            f"{prompt}\n\nContext:\n{context}",
-            config={"metadata": {"thread_id": thread_id}} if thread_id else {}
+        response = llm.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=f"{prompt}\n\nContext:\n{context}"
         )
 
         return AgentResponse(
             agent_type=AgentType.RESEARCH,
-            answer=response.content,
+            answer=response.text,
             confidence=0.8,
             sources=sources,
         )
@@ -214,14 +215,14 @@ async def _image_agent(
         
         Based on the extracted text, please answer the user's query contextually.
         """
-        response = llm.invoke(
-            prompt,
-            config={"metadata": {"thread_id": thread_id}} if thread_id else {}
+        response = llm.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
         )
         
         return AgentResponse(
             agent_type=AgentType.IMAGE_ANALYSIS,
-            answer=response.content,
+            answer=response.text,
             confidence=ocr_result.get("average_confidence", 0.5),
             sources=[Source(title="OCR Extraction", relevance_score=1.0, excerpt=extracted_text[:200])],
         )
@@ -253,16 +254,16 @@ async def _rag_agent(query: str, llm, thread_id: Optional[str] = None) -> AgentR
         # Search vector store
         context, sources = rag_service.search_and_format(query, k=3)
 
-        # Generate response
+        # Generate response using LLM
         prompt = rag_agent_prompt.format(input=query, context=context)
-        response = llm.invoke(
-            prompt,
-            config={"metadata": {"thread_id": thread_id}} if thread_id else {}
+        response = llm.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
         )
 
         return AgentResponse(
             agent_type=AgentType.RAG,
-            answer=response.content,
+            answer=response.text,
             confidence=0.75,
             sources=sources,
         )
