@@ -117,7 +117,7 @@ class FAISSVectorStore:
         if not self.store_path:
             raise ValueError("store_path not set. Cannot save vector store.")
 
-        self.store_path.parent.mkdir(parents=True, exist_ok=True)
+        self.store_path.mkdir(parents=True, exist_ok=True)
 
         # Save FAISS index
         faiss.write_index(self.index, str(self.store_path / "index.faiss"))

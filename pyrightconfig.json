@@ -1,0 +1,22 @@
+{
+    "executionEnvironments": [
+        {
+            "root": "back-end",
+            "pythonVersion": "3.10",
+            "venv": ".venv",
+            "venvPath": "back-end"
+        }
+    ],
+    "include": [
+        "back-end"
+    ],
+    "exclude": [
+        "**/__pycache__"
+    ],
+    "reportMissingImports": true,
+    "analysis": {
+        "extraPaths": [
+            "back-end"
+        ]
+    }
+}

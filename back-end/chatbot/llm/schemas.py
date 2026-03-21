@@ -107,3 +107,11 @@ class HealthResponse(BaseModel):
         default_factory=dict,
         description="Status of each service"
     )
+
+
+class QuotaResponse(BaseModel):
+    """Rate limit status."""
+    remaining: int = Field(..., description="Remaining requests in period")
+    limit: int = Field(..., description="Max requests allowed per period")
+    period_seconds: int = Field(..., description="Rate limit period in seconds")
+    wait_time: int = Field(..., description="Seconds to wait if limit exceeded")

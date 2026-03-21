@@ -27,7 +27,9 @@ st.set_page_config(
 API_URL = os.getenv("STREAMLIT_API_URL", "http://localhost:8000")
 API_CHAT = f"{API_URL}/api/v1/chat"
 API_UPLOAD = f"{API_URL}/api/v1/upload-document"
+API_UPLOAD_FILE = f"{API_URL}/api/v1/upload-file"
 API_HEALTH = f"{API_URL}/api/v1/health"
+API_QUOTA = f"{API_URL}/api/v1/quota"
 
 
 # Styling
@@ -65,7 +67,18 @@ def check_api_health() -> bool:
         return False
 
 
-def send_message(message: str, agents: list, image_data: Optional[str] = None) -> dict:
+def get_quota_status() -> Optional[dict]:
+    """Get current rate limit status."""
+    try:
+        response = requests.get(API_QUOTA, timeout=5)
+        if response.status_code == 200:
+            return response.json()
+        return None
+    except:
+        return None
+
+
+def send_message(message: str, agents: list, image_data: Optional[str] = None) -> Optional[dict]:
     """
     Send message to chatbot API.
 
@@ -93,6 +106,12 @@ def send_message(message: str, agents: list, image_data: Optional[str] = None) -
         response.raise_for_status()
         return response.json()
 
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 429:
+            st.error(f"🛑 RATE LIMIT: {e.response.json().get('detail')}")
+        else:
+            st.error(f"❌ API Error: {str(e)}")
+        return None
     except requests.exceptions.ConnectionError:
         st.error("❌ Cannot connect to chatbot API. Is the backend server running?")
         return None
@@ -101,7 +120,7 @@ def send_message(message: str, agents: list, image_data: Optional[str] = None) -
         return None
 
 
-def upload_document(file_path: str, file_name: str) -> dict:
+def upload_document(file_path: str, file_name: str) -> Optional[dict]:
     """
     Upload document to chatbot knowledge base.
 
@@ -113,21 +132,13 @@ def upload_document(file_path: str, file_name: str) -> dict:
         Upload response
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        payload = {
-            "document_name": file_name,
-            "document_type": "text",
-            "content": content,
-            "tags": ["uploaded"],
-        }
-
-        response = requests.post(
-            API_UPLOAD,
-            json=payload,
-            timeout=30,
-        )
+        with open(file_path, "rb") as f:
+            files = {"file": (file_name, f)}
+            response = requests.post(
+                API_UPLOAD_FILE,
+                files=files,
+                timeout=60,
+            )
         response.raise_for_status()
         return response.json()
 
@@ -138,11 +149,15 @@ def upload_document(file_path: str, file_name: str) -> dict:
 
 # Main UI
 st.title("🤖 AI Chatbot")
-st.markdown("*Powered by Groq LLM, LangChain, and FAISS*")
+st.markdown("*Powered by Google Gemini 2.5 Flash, LangChain, and FAISS*")
 
 # Sidebar
 with st.sidebar:
     st.header("⚙️ Settings")
+    
+    # Initialize variables for conditional UI
+    uploaded_file = None
+    uploaded_image = None
 
     # Check API status
     if check_api_health():
@@ -151,58 +166,79 @@ with st.sidebar:
         st.error("❌ API Offline - Backend not running")
         st.info("Run: `python src/main.py` in the back-end directory")
 
+    # Show Quota (Rate Limit)
+    quota = get_quota_status()
+    if quota:
+        remaining = quota.get("remaining", 0)
+        wait_time = quota.get("wait_time", 0)
+        
+        st.write(f"📊 **Request Sho-down**")
+        if remaining > 0:
+            st.info(f"Requests remaining: {remaining}/10")
+        else:
+            st.warning(f"LIMIT REACHED! Wait {wait_time}s")
+            st.progress(0)
+        
+        if remaining < 10:
+            # Simple visualization of used quota
+            st.progress(remaining / 10)
+
     st.divider()
 
     # Agent selection
     st.subheader("👥 Agents")
-    use_research = st.checkbox("🔍 LLM & Basic Searches", value=True)
-    use_rag = st.checkbox("📚 RAG (Document)", value=True)
-    use_ocr = st.checkbox("🖼️ Image Agent (OCR)", value=False)
+    use_research = st.checkbox("🔍 LLM & Research", value=True, help="General chat and web research")
+    use_rag = st.checkbox("📚 RAG Agent", value=False, help="Chat with your documents")
+    use_ocr = st.checkbox("🖼️ OCR Agent", value=False, help="Extract text from images")
 
     st.divider()
 
-    # Knowledge base management
-    st.subheader("📖 Knowledge Base")
+    # Conditional RAG uploader
+    if use_rag:
+        st.subheader("📖 Knowledge Base")
+        
+        # Get Knowledge Base Size
+        try:
+            kb_size = requests.get(f"{API_URL}/api/v1/health", timeout=2).json()["services"].get("vector_db_size", 0)
+            st.caption(f"Status: {kb_size} document segments indexed.")
+        except:
+            pass
 
-    uploaded_file = st.file_uploader(
-        "Upload document (TXT, MD, PDF)",
-        type=["txt", "md", "pdf"]
-    )
+        uploaded_file = st.file_uploader(
+            "Upload document (TXT, MD, PDF)",
+            type=["txt", "md", "pdf"],
+            key="rag_uploader"
+        )
 
-    if uploaded_file:
-        if st.button("📤 Add to Knowledge Base"):
-            with st.spinner("Uploading..."):
-                # Save temp file using OS temporary directory
-                import tempfile
+        if uploaded_file:
+            if st.button("📤 Add to Knowledge Base", type="primary"):
+                with st.spinner("Processing document..."):
+                    import tempfile
+                    temp_dir = tempfile.gettempdir()
+                    temp_path = os.path.join(temp_dir, uploaded_file.name)
+                    with open(temp_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    
+                    result = upload_document(temp_path, uploaded_file.name)
+                    if result and result.get("success"):
+                        st.success(f"✅ {result.get('chunks_created')} chunks indexed!")
+                    os.remove(temp_path)
+        st.divider()
 
-                temp_dir = tempfile.gettempdir()
-                temp_path = os.path.join(temp_dir, uploaded_file.name)
-                with open(temp_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-
-                # Upload
-                result = upload_document(temp_path, uploaded_file.name)
-                if result and result.get("success"):
-                    st.success(f"✅ {result.get('chunks_created')} chunks added!")
-                os.remove(temp_path)
-
-    st.divider()
-
-    # Image Upload for OCR
+    # Conditional OCR uploader
     if use_ocr:
         st.subheader("🖼️ Image Extraction")
         uploaded_image = st.file_uploader(
             "Upload image for OCR",
             type=["jpg", "png", "jpeg"],
-            key="ocr_image"
+            key="ocr_uploader"
         )
         
         if uploaded_image:
-            st.image(uploaded_image, caption="Uploaded Image", use_container_width=True)
-            if st.button("🔍 Extract Text from Image"):
-                st.info("🔄 Image analysis integration in progress. For now, this will explain OCR capabilities.")
-    
-    st.divider()
+            st.image(uploaded_image, caption="Current Image", use_container_width=True)
+            if st.button("🔍 Extract Text"):
+                st.info("🔄 OCR is active. This will explain the text content to the Chatbot.")
+        st.divider()
 
     # About
     st.subheader("ℹ️ About")
@@ -215,7 +251,7 @@ with st.sidebar:
 
     **Tech Stack**
     - Backend: FastAPI + LangChain
-    - LLM: Groq (Llama-3.1 8B)
+    - LLM: Google Gemini 2.5 Flash
     - Vector DB: FAISS
     - Search: Tavily AI
     - Frontend: Streamlit

@@ -16,6 +16,7 @@ from chatbot.api.v1.schemas import (
     DocumentUploadRequest,
     DocumentUploadResponse,
     HealthResponse,
+    QuotaResponse,
     AgentResponse,
     AgentType,
     Source,
@@ -23,10 +24,11 @@ from chatbot.api.v1.schemas import (
 from chatbot.core.config import settings
 from chatbot.llm.llm_data import get_llm
 from chatbot.llm.prompts import research_agent_prompt, rag_agent_prompt, image_agent_prompt
-from chatbot.services.search_service import GoogleSearchService, TavilySearchService
+from chatbot.services.search_service import TavilySearchService
 from chatbot.services.rag_service import RAGService
 from chatbot.services.ocr_service import OCRService
 from chatbot.utils.logging_config import logger
+from chatbot.utils.rate_limiter import limiter
 
 router = APIRouter(prefix="/api/v1", tags=["chatbot"])
 
@@ -46,9 +48,22 @@ def get_ocr_service() -> OCRService:
     return OCRService()
 
 
+@router.get("/quota", response_model=QuotaResponse)
+async def get_quota() -> QuotaResponse:
+    """Get current rate limit status."""
+    remaining, wait_time = limiter.get_status("chat_limit")
+    return QuotaResponse(
+        remaining=remaining,
+        limit=limiter.limit,
+        period_seconds=limiter.period,
+        wait_time=wait_time
+    )
+
+
 @router.post("/chat", response_model=ChatResponse)
 @traceable(name="chat_endpoint")
 async def chat(request: ChatRequest) -> ChatResponse:
+    limiter.check("chat_limit")
     """
     Main chat endpoint. Routes requests to appropriate agents.
 
@@ -98,7 +113,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
 async def _research_agent(query: str, llm) -> AgentResponse:
     """
-    Execute Research Agent using Google Search.
+    Execute Research Agent using Tavily Search.
 
     Args:
         query: User query
@@ -286,6 +301,47 @@ def _synthesize_responses(
     return "\n".join(results)
 
 
+@router.post("/upload-file", response_model=DocumentUploadResponse)
+async def upload_file(
+    file: UploadFile = File(...),
+) -> DocumentUploadResponse:
+    """
+    Upload a binary file (PDF, TXT) to knowledge base via multipart/form-data.
+    """
+    try:
+        import os
+        import tempfile
+        
+        # Save to temporary file for RAG processing
+        suffix = os.path.splitext(file.filename)[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(await file.read())
+            tmp_path = tmp.name
+
+        try:
+            rag_service = get_rag_service()
+            chunks_created = rag_service.add_documents_from_files([tmp_path])
+            rag_service.save()
+            
+            return DocumentUploadResponse(
+                success=True,
+                document_id=f"file_{int(time.time())}",
+                chunks_created=chunks_created,
+                message=f"File '{file.filename}' processed with {chunks_created} chunks"
+            )
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    except Exception as e:
+        logger.error(f"File upload error: {str(e)}")
+        return DocumentUploadResponse(
+            success=False,
+            chunks_created=0,
+            message=f"File upload failed: {str(e)}"
+        )
+
+
 @router.post("/upload-document", response_model=DocumentUploadResponse)
 async def upload_document(request: DocumentUploadRequest) -> DocumentUploadResponse:
     """
@@ -353,6 +409,7 @@ async def health_check() -> HealthResponse:
         "vector_db": "healthy",
         "search": "healthy",
         "ocr": "healthy",
+        "vector_db_size": 0
     }
 
     # Try to verify services
@@ -363,16 +420,15 @@ async def health_check() -> HealthResponse:
 
     try:
         rag_service = get_rag_service()
-        if rag_service.get_store_size() >= 0:
-            pass
+        services["vector_db_size"] = rag_service.get_store_size()
     except Exception as e:
         services["vector_db"] = f"degraded: {str(e)}"
 
     # Determine overall status
     status = "healthy"
-    if any("degraded" in v or "error" in v for v in services.values()):
+    if any("degraded" in str(v) or "error" in str(v) for v in services.values()):
         status = "degraded"
-    if any("error" in v for v in services.values()):
+    if any("error" in str(v) for v in services.values()):
         status = "down"
 
     return HealthResponse(

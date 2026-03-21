@@ -12,6 +12,7 @@ from chatbot.llm.schemas import (
     DocumentUploadRequest,
     DocumentUploadResponse,
     HealthResponse,
+    QuotaResponse,
     Source,
     TraceInfo,
 )
@@ -25,6 +26,7 @@ __all__ = [
     "DocumentUploadRequest",
     "DocumentUploadResponse",
     "HealthResponse",
+    "QuotaResponse",
     "Source",
     "TraceInfo",
 ]

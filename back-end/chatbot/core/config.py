@@ -21,22 +21,18 @@ class Settings(BaseSettings):
     api_port: int = 8000
 
     # LLM Configuration
-    groq_api_key: str
-    llm_model_name: str = "llama-3.1-70b-versatile"
+    llm_model_name: str = "gemini-2.0-flash"
     llm_temperature: float = 0.7
     llm_max_tokens: int = 1024
 
     # LangSmith Configuration
     langsmith_api_key: str = ""
+    langsmith_tracing: bool = True
     langsmith_project_name: str = "chatbot-project"
 
     # Google Gemini Configuration
     google_gemini_api_key: str = ""
     google_api_key: str = ""
-
-    # Google CSE Configuration (for web search)
-    google_cse_id: str = ""
-    google_cse_api_key: str = ""
 
     # Tavily API Configuration (for web search)
     tavily_api_key: str = ""

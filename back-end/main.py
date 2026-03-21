@@ -22,11 +22,12 @@ from chatbot.utils.logging_config import logger, setup_logging
 
 # Initialize LangSmith if API key is provided
 if settings.langsmith_api_key:
+    os.environ["LANGSMITH_TRACING"] = str(settings.langsmith_tracing).lower()
     os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key
     os.environ["LANGSMITH_PROJECT"] = settings.langsmith_project_name
 
 # Log key lengths (not values) to verify env loading
-logger.info(f"Loaded GROQ key length: {len(settings.groq_api_key) if settings.groq_api_key else 0}")
+logger.info(f"Loaded Google AI key length: {len(settings.google_gemini_api_key or settings.google_api_key) if (settings.google_gemini_api_key or settings.google_api_key) else 0}")
 logger.info(f"Loaded Tavily key length: {len(settings.tavily_api_key) if settings.tavily_api_key else 0}")
 
 # Setup logging
