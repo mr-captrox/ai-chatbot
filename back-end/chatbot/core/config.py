@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     # LangSmith Configuration
     langsmith_api_key: str = ""
     langsmith_tracing: bool = True
-    langsmith_project_name: str = "chatbot-project"
+    langsmith_endpoint: str = "https://api.smith.langchain.com"
+    langsmith_project_name: str = "chatbot"
 
     # Google Gemini Configuration
     google_gemini_api_key: str = ""

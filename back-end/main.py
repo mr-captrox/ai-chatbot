@@ -23,6 +23,8 @@ from chatbot.utils.logging_config import logger, setup_logging
 # Initialize LangSmith if API key is provided
 if settings.langsmith_api_key:
     os.environ["LANGSMITH_TRACING"] = str(settings.langsmith_tracing).lower()
+    os.environ["LANGCHAIN_TRACING_V2"] = str(settings.langsmith_tracing).lower()
+    os.environ["LANGSMITH_ENDPOINT"] = settings.langsmith_endpoint
     os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key
     os.environ["LANGSMITH_PROJECT"] = settings.langsmith_project_name
 
