@@ -55,6 +55,7 @@ class ChatRequest(BaseModel):
     )
     use_image: bool = Field(default=False, description="Whether to use image analysis")
     image_data: Optional[str] = Field(None, description="Base64 encoded image data")
+    thread_id: Optional[str] = Field(None, description="LangSmith thread ID for grouping traces")
 
 
 class ChatResponse(BaseModel):

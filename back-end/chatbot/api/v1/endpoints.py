@@ -78,20 +78,21 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
     try:
         llm = get_llm()
+        thread_id = request.thread_id
 
         # Research Agent
         if AgentType.RESEARCH in request.agent_types:
-            research_response = await _research_agent(request.message, llm)
+            research_response = await _research_agent(request.message, llm, thread_id=thread_id)
             agent_responses.append(research_response)
 
         # RAG Agent (Document+Knowledge Base Search)
         if AgentType.RAG in request.agent_types:
-            rag_response = await _rag_agent(request.message, llm)
+            rag_response = await _rag_agent(request.message, llm, thread_id=thread_id)
             agent_responses.append(rag_response)
 
         # Image Analysis Agent
         if AgentType.IMAGE_ANALYSIS in request.agent_types:
-            image_response = await _image_agent(request.message, request.image_data, llm)
+            image_response = await _image_agent(request.message, request.image_data, llm, thread_id=thread_id)
             agent_responses.append(image_response)
 
         # Synthesize responses
@@ -111,13 +112,14 @@ async def chat(request: ChatRequest) -> ChatResponse:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def _research_agent(query: str, llm) -> AgentResponse:
+async def _research_agent(query: str, llm, thread_id: Optional[str] = None) -> AgentResponse:
     """
     Execute Research Agent using Tavily Search.
 
     Args:
         query: User query
         llm: LLM instance
+        thread_id: Optional thread ID
 
     Returns:
         AgentResponse from research
@@ -134,7 +136,10 @@ async def _research_agent(query: str, llm) -> AgentResponse:
 
         # Generate response
         prompt = research_agent_prompt.format(input=query)
-        response = llm.invoke(f"{prompt}\n\nContext:\n{context}")
+        response = llm.invoke(
+            f"{prompt}\n\nContext:\n{context}",
+            config={"metadata": {"thread_id": thread_id}} if thread_id else {}
+        )
 
         return AgentResponse(
             agent_type=AgentType.RESEARCH,
@@ -156,7 +161,12 @@ async def _research_agent(query: str, llm) -> AgentResponse:
 import base64
 from io import BytesIO
 
-async def _image_agent(query: str, image_data: Optional[str], llm) -> AgentResponse:
+async def _image_agent(
+    query: str,
+    image_data: Optional[str],
+    llm,
+    thread_id: Optional[str] = None
+) -> AgentResponse:
     """
     Execute Image Analysis Agent using OCR.
     
@@ -164,6 +174,7 @@ async def _image_agent(query: str, image_data: Optional[str], llm) -> AgentRespo
         query: User query
         image_data: Base64 encoded image
         llm: LLM instance
+        thread_id: Optional thread ID
         
     Returns:
         AgentResponse from image analysis
@@ -203,7 +214,10 @@ async def _image_agent(query: str, image_data: Optional[str], llm) -> AgentRespo
         
         Based on the extracted text, please answer the user's query contextually.
         """
-        response = llm.invoke(prompt)
+        response = llm.invoke(
+            prompt,
+            config={"metadata": {"thread_id": thread_id}} if thread_id else {}
+        )
         
         return AgentResponse(
             agent_type=AgentType.IMAGE_ANALYSIS,
@@ -222,13 +236,14 @@ async def _image_agent(query: str, image_data: Optional[str], llm) -> AgentRespo
         )
 
 
-async def _rag_agent(query: str, llm) -> AgentResponse:
+async def _rag_agent(query: str, llm, thread_id: Optional[str] = None) -> AgentResponse:
     """
     Execute RAG Agent using vector store retrieval.
 
     Args:
         query: User query
         llm: LLM instance
+        thread_id: Optional thread ID
 
     Returns:
         AgentResponse from RAG
@@ -240,7 +255,10 @@ async def _rag_agent(query: str, llm) -> AgentResponse:
 
         # Generate response
         prompt = rag_agent_prompt.format(input=query, context=context)
-        response = llm.invoke(prompt)
+        response = llm.invoke(
+            prompt,
+            config={"metadata": {"thread_id": thread_id}} if thread_id else {}
+        )
 
         return AgentResponse(
             agent_type=AgentType.RAG,

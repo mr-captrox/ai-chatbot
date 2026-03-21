@@ -22,6 +22,11 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+import uuid
+
+# Initialize session state for thread ID
+if "thread_id" not in st.session_state:
+    st.session_state.thread_id = str(uuid.uuid4())
 
 # API Configuration
 API_URL = os.getenv("STREAMLIT_API_URL", "http://localhost:8000")
@@ -96,6 +101,7 @@ def send_message(message: str, agents: list, image_data: Optional[str] = None) -
             "agent_types": agents,
             "use_image": "image_analysis" in agents,
             "image_data": image_data,
+            "thread_id": st.session_state.thread_id,
         }
 
         response = requests.post(
@@ -187,6 +193,13 @@ with st.sidebar:
 
     # Agent selection
     st.subheader("👥 Agents")
+    
+    # New Chat / Reset Thread
+    if st.button("🔄 New Chat", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.thread_id = str(uuid.uuid4())
+        st.rerun()
+
     use_research = st.checkbox("🔍 LLM & Research", value=True, help="General chat and web research")
     use_rag = st.checkbox("📚 RAG Agent", value=False, help="Chat with your documents")
     use_ocr = st.checkbox("🖼️ OCR Agent", value=False, help="Extract text from images")
