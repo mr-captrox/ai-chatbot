@@ -4,10 +4,11 @@ uvicorn
 pydantic
 pydantic-settings
 
+# Groq
+groq
+
 # LangChain ecosystem
 langchain
-langchain-google-genai
-google-generativeai
 langchain-community
 langsmith
 

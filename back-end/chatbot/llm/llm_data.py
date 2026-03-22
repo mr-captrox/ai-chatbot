@@ -1,24 +1,24 @@
 import os
-from google import genai
+from groq import Groq
 from langsmith import wrappers
 from chatbot.core.config import settings
 
-def get_google_llm():
-    """Initialize Wrapped Native Google Gemini LLM."""
-    api_key = settings.google_gemini_api_key or settings.google_api_key
+def get_groq_llm():
+    """Initialize Wrapped Groq LLM."""
+    api_key = settings.groq_api_key
     if not api_key:
         return None
     
     # Initialize native client
-    gemini_client = genai.Client(api_key=api_key)
+    groq_client = Groq(api_key=api_key)
     
-    # Wrap with LangSmith tracing
-    wrapped_client = wrappers.wrap_gemini(
-        gemini_client,
+    # Wrap with LangSmith tracing (Groq is OpenAI-compatible)
+    wrapped_client = wrappers.wrap_openai(
+        groq_client,
         tracing_extra={
-            "tags": ["gemini", "native", "python"],
+            "tags": ["groq", "llama", "python"],
             "metadata": {
-                "integration": "google-genai-native",
+                "integration": "groq-native",
                 "project": settings.langsmith_project_name
             },
         },
@@ -31,12 +31,12 @@ _llm_instance = None
 
 
 def get_llm():
-    """Get or create the wrapped Gemini client."""
+    """Get or create the wrapped Groq client."""
     global _llm_instance
     if _llm_instance is None:
-        _llm_instance = get_google_llm()
+        _llm_instance = get_groq_llm()
             
         if _llm_instance is None:
-            raise ValueError("No Gemini API key provided")
+            raise ValueError("No Groq API key provided")
             
     return _llm_instance

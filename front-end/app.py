@@ -264,7 +264,7 @@ with st.sidebar:
 
     **Tech Stack**
     - Backend: FastAPI + LangChain
-    - LLM: Google Gemini 2.5 Flash
+    - LLM: Meta Llama 3 (via Groq)
     - Vector DB: FAISS
     - Search: Tavily AI
     - Frontend: Streamlit
