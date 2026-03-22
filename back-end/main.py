@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables FIRST, before any other imports
-env_file = Path(__file__).parent.parent / ".env"
+env_file = Path(__file__).parent / ".env"
 load_dotenv(env_file)
 
 from chatbot.api.v1 import endpoints
@@ -29,7 +29,7 @@ if settings.langsmith_api_key:
     os.environ["LANGSMITH_PROJECT"] = settings.langsmith_project_name
 
 # Log key lengths (not values) to verify env loading
-logger.info(f"Loaded Google AI key length: {len(settings.google_gemini_api_key or settings.google_api_key) if (settings.google_gemini_api_key or settings.google_api_key) else 0}")
+logger.info(f"Loaded Groq AI key length: {len(settings.groq_api_key) if settings.groq_api_key else 0}")
 logger.info(f"Loaded Tavily key length: {len(settings.tavily_api_key) if settings.tavily_api_key else 0}")
 
 # Setup logging

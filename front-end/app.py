@@ -155,7 +155,7 @@ def upload_document(file_path: str, file_name: str) -> Optional[dict]:
 
 # Main UI
 st.title("🤖 AI Chatbot")
-st.markdown("*Powered by Google Gemini 2.5 Flash, LangChain, and FAISS*")
+st.markdown("*Powered by Meta Llama 3 via Groq, LangChain, and FAISS*")
 
 # Sidebar
 with st.sidebar:
@@ -170,7 +170,7 @@ with st.sidebar:
         st.success("✅ API Connected")
     else:
         st.error("❌ API Offline - Backend not running")
-        st.info("Run: `python src/main.py` in the back-end directory")
+        st.info("Run: `python main.py` in the back-end directory")
 
     # Show Quota (Rate Limit)
     quota = get_quota_status()
