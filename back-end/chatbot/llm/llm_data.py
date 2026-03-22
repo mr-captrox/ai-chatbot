@@ -10,20 +10,10 @@ def get_groq_llm():
         return None
     
     # Initialize native client
+    from chatbot.utils.logging_config import logger
+    logger.info(f"Initializing Groq client with key ending in: ...{api_key[-4:] if api_key else 'None'}")
     groq_client = Groq(api_key=api_key)
-    
-    # Wrap with LangSmith tracing (Groq is OpenAI-compatible)
-    wrapped_client = wrappers.wrap_openai(
-        groq_client,
-        tracing_extra={
-            "tags": ["groq", "llama", "python"],
-            "metadata": {
-                "integration": "groq-native",
-                "project": settings.langsmith_project_name
-            },
-        },
-    )
-    return wrapped_client
+    return groq_client
 
 
 # Lazy-loaded LLM instance

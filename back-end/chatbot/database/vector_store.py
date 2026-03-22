@@ -31,6 +31,14 @@ class FAISSVectorStore:
         self.index = faiss.IndexFlatL2(embedding_dim)
         self.documents: List[Document] = []
         self.embedding_to_doc_id = {}  # Map embedding index to document ID
+        
+        # Load existing store if path provided and index files exist
+        if self.store_path and (self.store_path / "index.faiss").exists():
+            try:
+                self.load()
+            except Exception as e:
+                # Log error but don't fail initialization
+                print(f"Failed to load existing vector store: {str(e)}")
 
     def add_documents(
         self,

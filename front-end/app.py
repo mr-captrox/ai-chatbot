@@ -233,9 +233,24 @@ with st.sidebar:
                         f.write(uploaded_file.getbuffer())
                     
                     result = upload_document(temp_path, uploaded_file.name)
-                    if result and result.get("success"):
-                        st.success(f"✅ {result.get('chunks_created')} chunks indexed!")
-                    os.remove(temp_path)
+                    if result:
+                        if result.get("success"):
+                            st.session_state.upload_message = {"type": "success", "msg": f"✅ {result.get('chunks_created')} chunks indexed!"}
+                            st.rerun()
+                        else:
+                            st.session_state.upload_message = {"type": "error", "msg": f"❌ {result.get('message', 'Upload failed without an error message.')}"}
+                    
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+        
+        # Display persistent upload message
+        if "upload_message" in st.session_state:
+            if st.session_state.upload_message["type"] == "success":
+                st.success(st.session_state.upload_message["msg"])
+            else:
+                st.error(st.session_state.upload_message["msg"])
+            # Clear it after showing once
+            del st.session_state.upload_message
         st.divider()
 
     # Conditional OCR uploader

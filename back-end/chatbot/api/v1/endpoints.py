@@ -250,8 +250,8 @@ async def _rag_agent(query: str, llm, thread_id: Optional[str] = None) -> AgentR
     """
     try:
         rag_service = get_rag_service()
-        # Search vector store
-        context, sources = rag_service.search_and_format(query, k=3)
+        # Search vector store (retrieve more context for comprehensive answers/summaries)
+        context, sources = rag_service.search_and_format(query, k=25)
 
         # Generate response using LLM
         prompt = rag_agent_prompt.format(input=query, context=context)
@@ -329,12 +329,13 @@ async def upload_file(
     try:
         import os
         import tempfile
+        import shutil
         
-        # Save to temporary file for RAG processing
-        suffix = os.path.splitext(file.filename)[1]
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        # Save to temporary directory to keep the original filename for metadata
+        tmp_dir = tempfile.mkdtemp()
+        tmp_path = os.path.join(tmp_dir, file.filename)
+        with open(tmp_path, "wb") as tmp:
             tmp.write(await file.read())
-            tmp_path = tmp.name
 
         try:
             rag_service = get_rag_service()
@@ -348,8 +349,8 @@ async def upload_file(
                 message=f"File '{file.filename}' processed with {chunks_created} chunks"
             )
         finally:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
+            if 'tmp_dir' in locals() and os.path.exists(tmp_dir):
+                shutil.rmtree(tmp_dir)
 
     except Exception as e:
         logger.error(f"File upload error: {str(e)}")
