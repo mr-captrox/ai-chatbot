@@ -46,7 +46,7 @@ def load_documents(source: str) -> List[Document]:
 
 def _load_from_pdf(file_path: str) -> List[Document]:
     """
-    Load documents from PDF file.
+    Load documents from PDF file using PyMuPDF (fitz).
 
     Args:
         file_path: Path to PDF file
@@ -55,33 +55,36 @@ def _load_from_pdf(file_path: str) -> List[Document]:
         List of Document objects
 
     Raises:
-        ImportError: If PyPDF2 not installed
+        ImportError: If pymupdf not installed
     """
     try:
-        import PyPDF2
+        import fitz  # PyMuPDF
     except ImportError:
-        raise ImportError("PyPDF2 required for PDF loading. Install with: pip install PyPDF2")
+        raise ImportError("pymupdf required for PDF loading. Install with: pip install pymupdf")
 
     documents = []
 
     try:
-        with open(file_path, "rb") as f:
-            pdf_reader = PyPDF2.PdfReader(f)
+        # Open PDF document
+        doc = fitz.open(file_path)
 
-            for page_num, page in enumerate(pdf_reader.pages):
-                text = page.extract_text()
+        for page_num in range(len(doc)):
+            page = doc.load_page(page_num)
+            text = page.get_text()
 
-                if text.strip():
-                    doc = Document(
-                        page_content=text,
-                        metadata={
-                            "source": Path(file_path).name,
-                            "page": page_num + 1,
-                            "type": "pdf",
-                        }
-                    )
-                    documents.append(doc)
-
+            if text.strip():
+                document = Document(
+                    page_content=text,
+                    metadata={
+                        "source": Path(file_path).name,
+                        "page": page_num + 1,
+                        "type": "pdf",
+                        "total_pages": len(doc)
+                    }
+                )
+                documents.append(document)
+        
+        doc.close()
         return documents
 
     except Exception as e:

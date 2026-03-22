@@ -28,7 +28,7 @@ numpy
 pandas
 
 # Document Processing
-PyPDF2
+pymupdf
 python-multipart
 
 # Optional: For better embeddings
